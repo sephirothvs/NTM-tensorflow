@@ -2,9 +2,10 @@ from __future__ import absolute_import
 
 import importlib
 import tensorflow as tf
+import os
 from ntm_cell import NTMCell
 from ntm import NTM
-
+import pdb
 from utils import pp
 
 flags = tf.app.flags
@@ -21,7 +22,7 @@ flags.DEFINE_integer("read_head_size", 1, "The number of read head [1]")
 flags.DEFINE_integer("test_max_length", 120, "Maximum length of output sequence [120]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
-flags.DEFINE_boolean("continue_train", None, "True to continue training from saved checkpoint. False for restarting. None for automatic [None]")
+flags.DEFINE_boolean("continue_train", False, "True to continue training from saved checkpoint. False for restarting. None for automatic [None]")
 FLAGS = flags.FLAGS
 
 
@@ -41,9 +42,14 @@ def create_ntm(config, sess, **ntm_args):
 
 
 def main(_):
+    config = tf.ConfigProto(allow_soft_placement = True)
+    config.gpu_options.per_process_gpu_memory_fraction = 0.9
+    os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
+    os.environ["CUDA_VISIBLE_DEVICES"]="1"
+
     pp.pprint(flags.FLAGS.__flags)
 
-    with tf.device('/cpu:0'), tf.Session() as sess:
+    with tf.device('/gpu:0'), tf.Session(config=config) as sess:
         try:
             task = importlib.import_module('tasks.%s' % FLAGS.task)
         except ImportError:
